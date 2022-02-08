@@ -54,17 +54,17 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         # swap columns of E, U
         E[i:, [j, j2]] = E[i:, [j2, j]]
         U[:, [j, j2]] = U[:, [j2, j]]
-        
+
         # swap rows of U and P
-        U[[j, j2]] = U[[j2, j]] 
-        P[[j, j2]] = P[[j2, j]] 
+        U[[j, j2]] = U[[j2, j]]
+        P[[j, j2]] = P[[j2, j]]
 
         # now do a schur complement
         Aij = E[i:i+1, j:j+1]
         A2j = E[i+1:, j:j+1]
         Ai2 = E[i:i+1, j+1:]
         A22 = E[i+1:, j+1:]
-        
+
         # no need to form the elimination matrices explicitly
         L[i+1:, i:i+1] = A2j / Aij
         U[j:j+1, j+1:] = Ai2 / Aij
@@ -77,9 +77,9 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
 
         j += 1
         i += 1
-        
+
     return L, E, U, P
-        
+
 
 def is_EL(A: np.ndarray) -> bool:
     """
@@ -120,4 +120,3 @@ if __name__ == "__main__":
     import doctest
     from scipy import sparse
     doctest.testmod()
-
