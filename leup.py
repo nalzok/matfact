@@ -1,3 +1,4 @@
+from fractions import Fraction
 import numpy as np
 from scipy import linalg as la
 
@@ -22,12 +23,21 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     ...     L, E, U, P = leup(M)
     ...     assert np.allclose(M, L @ E @ U @ P)
     ...     assert is_EL(E)
+    >>>
+    >>> M = np.zeros((5, 4), dtype=object)
+    >>> M[0, 1] = Fraction(2, 3)
+    >>> M[1, 0] = Fraction(3, 4)
+    >>> L, E, U, P = leup(M)
+    >>> (L @ E @ U @ P == M).all()
+    True
+    >>> is_EL(E)
+    True
     """
     m, n = M.shape
     E = M.copy()
-    L = np.eye(m)
-    U = np.eye(n)
-    P = np.eye(n)
+    L = np.eye(m, dtype=E.dtype)
+    U = np.eye(n, dtype=E.dtype)
+    P = np.eye(n, dtype=E.dtype)
 
     i, j = 0, 0
     while i < m and j < n:
@@ -49,9 +59,6 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         U[[j, j2]] = U[[j2, j]] 
         P[[j, j2]] = P[[j2, j]] 
 
-        # loop invariant
-        assert np.allclose(M, L @ E @ U @ P), f'Swap failure at {i=}, {j=}'
-        
         # now do a schur complement
         Aij = E[i:i+1, j:j+1]
         A2j = E[i+1:, j:j+1]
@@ -59,17 +66,14 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         A22 = E[i+1:, j+1:]
         
         # no need to form the elimination matrices explicitly
-        L[i+1:, i:i+1] = la.solve(Aij.T, A2j.T).T
-        U[j:j+1, j+1:] = la.solve(Aij, Ai2)
+        L[i+1:, i:i+1] = A2j / Aij
+        U[j:j+1, j+1:] = Ai2 / Aij
 
         # form schur complement and apply
-        S = A22 - A2j @ la.solve(Aij, Ai2)
+        S = A22 - A2j @ Ai2 / Aij
         E[i+1:, j+1:] = S
         E[i:i+1, j+1:] = 0
         E[i+1:, j:j+1] = 0
-
-        # loop invariant
-        assert np.allclose(M, L @ E @ U @ P), f'Schur failure at {i=}, {j=}'
 
         j += 1
         i += 1
