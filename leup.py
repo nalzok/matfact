@@ -1,55 +1,30 @@
 import numpy as np
-import scipy.linalg as la
-
-
-# TODO:
-# [X] Debug issues above
-# [ ] Rational arithmetic (try Python libaries first),
-# [ ] Shape commutation algorithm (Prop 7)
-# [ ] Quiver algorithm (Alg 5)
-# 
-# Last resort:
-# https://caam37830.github.io/book/00_python/classes.html
+from scipy import linalg as la
 
 
 def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     """
+    Perform LEUP factorization described by algo 4 of <arXiv:1911.10693>.
+
+    >>> np.random.seed(42)
+    >>>
     >>> m, n = 5, 4
+    >>> M1 = np.random.randn(m, n)
+    >>> M2 = np.random.randn(m, n)
+    >>> M2[0, 0] = 0
+    >>> M3 = np.random.randn(m, n)
+    >>> M3[0] = 0
+    >>> M4 = np.random.randn(m, n)
+    >>> M4[:, 0] = 0
+    >>> M5 = sparse.random(5, 4, density=0.2).toarray().astype(np.float64)
     >>>
-    >>>
-    >>> M = np.random.randn(m, n)
-    >>> L, E, U, P = leup(M)
-    >>> np.allclose(M, L @ E @ U @ P)
-    True
-    >>> is_EL(E)
-    True
-    >>>
-    >>> M = np.random.randn(m, n)
-    >>> M[0, 0] = 0
-    >>> L, E, U, P = leup(M)
-    >>> np.allclose(M, L @ E @ U @ P)
-    True
-    >>> is_EL(E)
-    True
-    >>>
-    >>> M = np.random.randn(m, n)
-    >>> M[0] = 0
-    >>> L, E, U, P = leup(M)
-    >>> np.allclose(M, L @ E @ U @ P)
-    True
-    >>> is_EL(E)
-    True
-    >>>
-    >>> M = np.random.randn(m, n)
-    >>> M[:, 0] = 0
-    >>> L, E, U, P = leup(M)
-    >>> np.allclose(M, L @ E @ U @ P)
-    True
-    >>> is_EL(E)
-    True
+    >>> for M in [M1, M2, M3, M4, M5]:
+    ...     L, E, U, P = leup(M)
+    ...     assert np.allclose(M, L @ E @ U @ P)
+    ...     assert is_EL(E)
     """
     m, n = M.shape
-    E = np.array(M, copy=True)
+    E = M.copy()
     L = np.eye(m)
     U = np.eye(n)
     P = np.eye(n)
@@ -83,7 +58,7 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         Ai2 = E[i:i+1, j+1:]
         A22 = E[i+1:, j+1:]
         
-        # We don't need to form the elimination matrices explictly
+        # no need to form the elimination matrices explicitly
         L[i+1:, i:i+1] = la.solve(Aij.T, A2j.T).T
         U[j:j+1, j+1:] = la.solve(Aij, Ai2)
 
@@ -104,6 +79,8 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
 
 def is_EL(A: np.ndarray) -> bool:
     """
+    Check if a matrix is an echelon pivot matrix
+
     >>> A = np.array([
     ...     [1, 0, 0],
     ...     [0, 0, 0],
@@ -137,4 +114,6 @@ def is_EL(A: np.ndarray) -> bool:
 
 if __name__ == "__main__":
     import doctest
+    from scipy import sparse
     doctest.testmod()
+
