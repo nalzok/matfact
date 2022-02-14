@@ -60,20 +60,20 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         P[[j, j2]] = P[[j2, j]]
 
         # now do a schur complement
-        Aij = E[i:i+1, j:j+1]
-        A2j = E[i+1:, j:j+1]
-        Ai2 = E[i:i+1, j+1:]
-        A22 = E[i+1:, j+1:]
+        Aij = E[i : i + 1, j : j + 1]
+        A2j = E[i + 1 :, j : j + 1]
+        Ai2 = E[i : i + 1, j + 1 :]
+        A22 = E[i + 1 :, j + 1 :]
 
         # no need to form the elimination matrices explicitly
-        L[i+1:, i:i+1] = A2j / Aij
-        U[j:j+1, j+1:] = Ai2 / Aij
+        L[i + 1 :, i : i + 1] = A2j / Aij
+        U[j : j + 1, j + 1 :] = Ai2 / Aij
 
         # form schur complement and apply
         S = A22 - A2j @ Ai2 / Aij
-        E[i+1:, j+1:] = S
-        E[i:i+1, j+1:] = 0
-        E[i+1:, j:j+1] = 0
+        E[i + 1 :, j + 1 :] = S
+        E[i : i + 1, j + 1 :] = 0
+        E[i + 1 :, j : j + 1] = 0
 
         j += 1
         i += 1
@@ -119,4 +119,5 @@ def is_EL(A: np.ndarray) -> bool:
 if __name__ == "__main__":
     import doctest
     from scipy import sparse
+
     doctest.testmod()
