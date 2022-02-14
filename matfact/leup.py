@@ -1,12 +1,13 @@
-from fractions import Fraction
 import numpy as np
-from scipy import linalg as la
 
 
 def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     """
     Perform LEUP factorization described by algo 4 of <arXiv:1911.10693>.
 
+    >>> from fractions import Fraction
+    >>> from scipy import sparse
+    >>>
     >>> np.random.seed(42)
     >>>
     >>> m, n = 5, 4
@@ -118,6 +119,5 @@ def is_EL(A: np.ndarray) -> bool:
 
 if __name__ == "__main__":
     import doctest
-    from scipy import sparse
 
     doctest.testmod()

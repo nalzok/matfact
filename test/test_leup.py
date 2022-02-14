@@ -33,9 +33,7 @@ def random_rational_matrix(m, n, p=0.1):
 
 class TestLEUP_rational(unittest.TestCase):
     def test_random(self):
-
         for seed in range(5):
-
             np.random.seed(seed)
             A = random_rational_matrix(8, 4, 0.2)
             L, E, U, P = leup(A)
