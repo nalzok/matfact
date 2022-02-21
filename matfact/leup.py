@@ -38,9 +38,9 @@ def leup(M: Mat) -> tuple[LowerTriMat, EchelonMat, UpperTriMat, PermMat]:
     """
     m, n = M.shape
     E = M.copy()
-    L = np.eye(m, dtype=E.dtype)
-    U = np.eye(n, dtype=E.dtype)
-    P = np.eye(n, dtype=E.dtype)
+    L: Mat = np.eye(m, dtype=E.dtype)
+    U: Mat = np.eye(n, dtype=E.dtype)
+    P: Mat = np.eye(n, dtype=E.dtype)
 
     i, j = 0, 0
     while i < m and j < n:
