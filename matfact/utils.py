@@ -22,4 +22,4 @@ def random_rational_matrix(rng: np.random.Generator, m: int, n: int, p: float = 
             if np.random.rand() < p:
                 A[i, j] = random_rational(rng)
 
-    return Mat(A)
+    return A
