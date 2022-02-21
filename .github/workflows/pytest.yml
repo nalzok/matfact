@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', 'pypy']
+        python-version: '3.10'
 
     steps:
     - uses: actions/checkout@v2
@@ -48,4 +48,4 @@ jobs:
 
     - name: Check with mypy
       run: |
-        pipenv run mypy -p matfact -p test
+        pipenv run mypy --strict -p matfact -p test
