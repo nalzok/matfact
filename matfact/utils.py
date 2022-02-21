@@ -11,7 +11,9 @@ def random_rational(rng: np.random.Generator) -> Fraction:
     return Fraction(x)
 
 
-def random_rational_matrix(rng: np.random.Generator, m: int, n: int, p: float = 0.1) -> Mat:
+def random_rational_matrix(
+    rng: np.random.Generator, m: int, n: int, p: float = 0.1
+) -> Mat:
     """
     m x n rational matrix
     every entry is non-zero with probability p
