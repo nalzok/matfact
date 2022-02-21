@@ -1,8 +1,9 @@
-from fractions import Fraction
 import numpy as np
 
+from .typing import EchelonMat, LowerTriMat
 
-def EL_pseudoinverse(EL):
+
+def EL_pseudoinverse(EL: EchelonMat) -> EchelonMat:
     """
     Return left pseudoinverse
     """
@@ -12,19 +13,19 @@ def EL_pseudoinverse(EL):
             if EL2[i, j] != 0:
                 EL2[i, j] = 1 / EL2[i, j]
 
-    return EL2
+    return EchelonMat(EL2)
 
 
-def EL_L_commute(EL, L):
-    return EL @ L @ EL_pseudoinverse(EL)
+def EL_L_commute(EL: EchelonMat, L: LowerTriMat) -> EchelonMat:
+    return EchelonMat(EL @ L @ EL_pseudoinverse(EL))
 
 
-EL = np.array([[2, 0], [0, 3]])
-L = np.array([[1, 0], [2, 1]])
+EL = EchelonMat(np.array([[2, 0], [0, 3]]))
+L = LowerTriMat(np.array([[1, 0], [2, 1]]))
 L2 = EL_L_commute(EL, L)
 print(L2 @ EL - EL @ L)
 
-EL = np.array([[0, 0], [2, 0]])
-L = np.array([[1, 0], [2, 1]])
+EL = EchelonMat(np.array([[0, 0], [2, 0]]))
+L = LowerTriMat(np.array([[1, 0], [2, 1]]))
 L2 = EL_L_commute(EL, L)
 print(L2 @ EL - EL @ L)

@@ -1,7 +1,9 @@
 import numpy as np
 
+from .typing import Mat, LowerTriMat, EchelonMat, UpperTriMat, PermMat
 
-def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+
+def leup(M: Mat) -> tuple[LowerTriMat, EchelonMat, UpperTriMat, PermMat]:
     """
     Perform LEUP factorization described by algo 4 of <arXiv:1911.10693>.
 
@@ -36,9 +38,9 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     """
     m, n = M.shape
     E = M.copy()
-    L = np.eye(m, dtype=E.dtype)
-    U = np.eye(n, dtype=E.dtype)
-    P = np.eye(n, dtype=E.dtype)
+    L = Mat(np.eye(m, dtype=E.dtype))
+    U = Mat(np.eye(n, dtype=E.dtype))
+    P = Mat(np.eye(n, dtype=E.dtype))
 
     i, j = 0, 0
     while i < m and j < n:
@@ -79,10 +81,10 @@ def leup(M: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         j += 1
         i += 1
 
-    return L, E, U, P
+    return LowerTriMat(L), EchelonMat(E), UpperTriMat(U), PermMat(P)
 
 
-def is_EL(A: np.ndarray) -> bool:
+def is_EL(A: EchelonMat) -> bool:
     """
     Check if a matrix is an echelon pivot matrix
 
