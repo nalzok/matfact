@@ -5,7 +5,7 @@ from matfact.leup import leup
 from matfact.utils import random_rational_matrix
 
 
-class TestLEUP_rational(unittest.TestCase):
+class TestLEUP(unittest.TestCase):
     def test_random(self) -> None:
         rng = np.random.default_rng(42)
         for _ in range(5):

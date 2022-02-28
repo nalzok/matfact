@@ -1,6 +1,8 @@
+from functools import reduce
 import numpy as np
 
-from .typing import EchelonMat, LowerTriMat
+from .leup import leup
+from .typing import Mat, LowerTriMat, EchelonMat, UpperTriMat, PermMat
 
 
 def EL_pseudoinverse(EL: EchelonMat) -> EchelonMat:
@@ -20,12 +22,22 @@ def EL_L_commute(EL: EchelonMat, L: LowerTriMat) -> EchelonMat:
     return EchelonMat(EL @ L @ EL_pseudoinverse(EL))
 
 
-EL = EchelonMat(np.array([[2, 0], [0, 3]]))
-L = LowerTriMat(np.array([[1, 0], [2, 1]]))
-L2 = EL_L_commute(EL, L)
-print(L2 @ EL - EL @ L)
+def reduce_boundary_maps(
+    boundary_maps: list[Mat],
+) -> tuple[LowerTriMat, list[EchelonMat], UpperTriMat, PermMat]:
+    lower = []
+    reduced = []
+    U = UpperTriMat(np.eye(boundary_maps[0].shape[0]))
+    P = PermMat(np.eye(boundary_maps[0].shape[0]))
+    for A in boundary_maps:
+        L, E, U, P = leup(U @ P @ A)
+        lower.append(L)
+        reduced.append(E)
 
-EL = EchelonMat(np.array([[0, 0], [2, 0]]))
-L = LowerTriMat(np.array([[1, 0], [2, 1]]))
-L2 = EL_L_commute(EL, L)
-print(L2 @ EL - EL @ L)
+    carry = LowerTriMat(np.eye(boundary_maps[-1].shape[1]))
+    for i in reversed(range(len(boundary_maps))):
+        L, E = lower[i], reduced[i]
+        L2 = EL_L_commute(E, carry)
+        carry = L @ L2
+
+    return carry, reduced, U, P
