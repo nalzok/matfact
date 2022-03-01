@@ -25,6 +25,7 @@ def EL_L_commute(EL: EchelonMat, L: LowerTriMat) -> EchelonMat:
 def reduce_boundary_maps(
     boundary_maps: list[Mat],
 ) -> tuple[LowerTriMat, list[EchelonMat], UpperTriMat, PermMat]:
+    # TODO: rename argument; they are not boundary maps
     lower = []
     reduced = []
     U = UpperTriMat(np.eye(boundary_maps[0].shape[0]))
