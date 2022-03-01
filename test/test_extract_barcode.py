@@ -12,7 +12,7 @@ class TestExtractBarcode(unittest.TestCase):
     def test_staged(self) -> None:
         reduced = [
             EchelonMat(np.array([[0, 1, 0], [1, 0, 0]])),
-            EchelonMat(np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0]])),
+            EchelonMat(np.array([[0, 0, 0], [0, 2, 0], [3, 0, 0]])),
         ]
         barcodes = extract_barcode(reduced)
 
@@ -27,7 +27,15 @@ class TestExtractBarcode(unittest.TestCase):
         #           e_2 <     e_2
         #
         # NOTE: order of barcode does not matter
-        self.assertEqual(barcodes, [Barcode(0, [2]), Barcode(0, [0, 2]), Barcode(0, [1, 1, 0]), Barcode(1, [0, 1])])
+        self.assertEqual(
+            barcodes,
+            [
+                Barcode(birth=0, trace=[2], coefs=[]),
+                Barcode(birth=0, trace=[0, 2], coefs=[3]),
+                Barcode(birth=0, trace=[1, 1, 0], coefs=[2, 1]),
+                Barcode(birth=1, trace=[0, 1], coefs=[1]),
+            ],
+        )
 
     def test_random(self) -> None:
         rng = np.random.default_rng(42)

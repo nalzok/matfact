@@ -9,9 +9,10 @@ from .typing import EchelonMat
 class Barcode:
     birth: int
     trace: list[int]
+    coefs: list[int]
 
     def __len__(self) -> int:
-        return len(self.trace) - 1
+        return len(self.coefs)
 
 
 def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
@@ -20,7 +21,7 @@ def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
     bases: list[Barcode] = []
     for basis in range(reduced[-1].shape[1]):
         # born at index 0, with empty trace
-        bases.append(Barcode(0, [basis]))
+        bases.append(Barcode(0, [basis], []))
 
     for i, E in enumerate(reduced[::-1]):
         next_bases: list[Barcode] = []
@@ -32,11 +33,12 @@ def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
 
             if nonzero.size == 0:
                 # birth
-                next_bases.append(Barcode(i + 1, [basis]))
+                next_bases.append(Barcode(i + 1, [basis], []))
             else:
                 # persist
                 barcode = bases[nonzero[0]]
                 barcode.trace.append(basis)
+                barcode.coefs.append(row[nonzero[0]])
                 next_bases.append(barcode)
 
         m, n = E.shape
