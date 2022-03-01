@@ -1,30 +1,43 @@
+from dataclasses import dataclass
+
 import numpy as np
 
 from .typing import EchelonMat
 
 
-def extract_barcode(reduced: list[EchelonMat]) -> list[tuple[int, list[int]]]:
+@dataclass
+class Barcode:
+    birth: int
+    trace: list[int]
+
+    def __len__(self) -> int:
+        return len(self.trace) - 1
+
+
+def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
     barcodes = []
 
-    bases: list[tuple[int, list[int]]] = []
-    for _ in range(reduced[-1].shape[1]):
+    bases: list[Barcode] = []
+    for basis in range(reduced[-1].shape[1]):
         # born at index 0, with empty trace
-        bases.append((0, []))
+        bases.append(Barcode(0, [basis]))
 
     for i, E in enumerate(reduced[::-1]):
-        next_bases: list[tuple[int, list[int]]] = []
+        next_bases: list[Barcode] = []
 
         # Assuming the direction is $V_{i-1} -> V_i$
-        for j, row in enumerate(E):
+        for basis, row in enumerate(E):
             nonzero = np.flatnonzero(row)
+            assert nonzero.size <= 1
+
             if nonzero.size == 0:
                 # birth
-                next_bases.append((i + 1, []))
+                next_bases.append(Barcode(i + 1, [basis]))
             else:
                 # persist
-                birth, trace = bases[nonzero[0]]
-                trace.append(j)
-                next_bases.append((birth, trace))
+                barcode = bases[nonzero[0]]
+                barcode.trace.append(basis)
+                next_bases.append(barcode)
 
         m, n = E.shape
         assert len(next_bases) == m

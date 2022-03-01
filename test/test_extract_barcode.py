@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from matfact.shape_commute import reduce_boundary_maps
-from matfact.barcode import extract_barcode
+from matfact.barcode import Barcode, extract_barcode
 from matfact.utils import random_rational_matrix
 from matfact.typing import EchelonMat
 
@@ -25,7 +25,9 @@ class TestExtractBarcode(unittest.TestCase):
         # e_1 <   . e_1 <.... e_1
         #                .
         #           e_2 <     e_2
-        self.assertEqual(barcodes, [(0, []), (0, [2]), (0, [1, 0]), (1, [1])])
+        #
+        # NOTE: order of barcode does not matter
+        self.assertEqual(barcodes, [Barcode(0, [2]), Barcode(0, [0, 2]), Barcode(0, [1, 1, 0]), Barcode(1, [0, 1])])
 
     def test_random(self) -> None:
         rng = np.random.default_rng(42)
@@ -36,5 +38,5 @@ class TestExtractBarcode(unittest.TestCase):
                 boundary_maps.append(random_rational_matrix(rng, m, n, 0.2))
 
             _, reduced, _, _ = reduce_boundary_maps(boundary_maps)
-            barcodes = extract_barcode(reduced)
-            print(barcodes)
+            # only check if there is any exception
+            _ = extract_barcode(reduced)
