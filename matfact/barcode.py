@@ -9,7 +9,7 @@ from .typing import EchelonMat
 class Barcode:
     birth: int
     trace: list[int]
-    coefs: list[int]
+    coefs: list[float]
 
     def __len__(self) -> int:
         return len(self.coefs)

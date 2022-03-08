@@ -5,6 +5,9 @@ name = "pypi"
 
 [packages]
 numpy = "*"
+dm-haiku = "*"
+jax = {extras = ["cpu"], version = "*"}
+tqdm = "*"
 
 [dev-packages]
 scipy = "*"

@@ -9,6 +9,6 @@ TODO:
 + [ ] Quiver algorithm (Alg 5)
     + [X] One direction
     + [ ] The other direction
-+ [ ] Track coefficients of bases
-+ [ ] Train a linear neural network with JAX
-+ [ ] Extract barcode from the LNN
++ [X] Track coefficients of bases
++ [X] Train a linear neural network with JAX+Haiku
++ [X] Extract barcode from the LNN
