@@ -6,7 +6,7 @@ from .typing import EchelonMat
 
 
 @dataclass
-class Barcode:
+class Bar:
     birth: int
     trace: list[int]
     coefs: list[float]
@@ -15,16 +15,16 @@ class Barcode:
         return len(self.coefs)
 
 
-def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
-    barcodes = []
+def extract_barcode(reduced: list[EchelonMat]) -> list[Bar]:
+    barcode = []
 
-    bases: list[Barcode] = []
+    bases: list[Bar] = []
     for basis in range(reduced[-1].shape[1]):
         # born at index 0, with empty trace
-        bases.append(Barcode(0, [basis], []))
+        bases.append(Bar(0, [basis], []))
 
     for i, E in enumerate(reduced[::-1]):
-        next_bases: list[Barcode] = []
+        next_bases: list[Bar] = []
 
         # Assuming the direction is $V_{i-1} -> V_i$
         for basis, row in enumerate(E):
@@ -33,13 +33,13 @@ def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
 
             if nonzero.size == 0:
                 # birth
-                next_bases.append(Barcode(i + 1, [basis], []))
+                next_bases.append(Bar(i + 1, [basis], []))
             else:
                 # persist
-                barcode = bases[nonzero[0]]
-                barcode.trace.append(basis)
-                barcode.coefs.append(row[nonzero[0]])
-                next_bases.append(barcode)
+                bar = bases[nonzero[0]]
+                bar.trace.append(basis)
+                bar.coefs.append(row[nonzero[0]])
+                next_bases.append(bar)
 
         m, n = E.shape
         assert len(next_bases) == m
@@ -49,11 +49,11 @@ def extract_barcode(reduced: list[EchelonMat]) -> list[Barcode]:
             nonzero = np.flatnonzero(col)
             if nonzero.size == 0:
                 # death
-                barcodes.append(bases[j])
+                barcode.append(bases[j])
 
         bases = next_bases
 
     # Add bases which persist until now
-    barcodes.extend(bases)
+    barcode.extend(bases)
 
-    return barcodes
+    return barcode

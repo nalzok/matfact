@@ -6,16 +6,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import haiku as hk
-
 from tqdm import tqdm
-
-
-def reflector(u):
-    # Householder reflector
-    norm = np.linalg.norm(u)
-    u /= norm
-    H = np.eye(u.size) - 2 * u[:, np.newaxis] @ u[:, np.newaxis].T
-    return jnp.asarray(H)
 
 
 def data_gen(np_rng, p, H):
@@ -31,7 +22,7 @@ class LNN(hk.Module):
         self.model = hk.Sequential(
             [
                 hk.Linear(self.p, with_bias=False, name="linear_0"),
-                hk.Linear(self.p, with_bias=False, name="linear_1"),
+                hk.Linear(self.p//2, with_bias=False, name="linear_1"),
                 hk.Linear(self.p, with_bias=False, name="linear_2"),
             ]
         )
@@ -45,7 +36,7 @@ def update_rule(param, update):
     return param - 0.001 * update
 
 
-def train() -> tuple[float, list[np.ndarray]]:
+def train(ground_truth) -> tuple[float, list[np.ndarray]]:
     p = 8
 
     def forward(input):
@@ -65,25 +56,33 @@ def train() -> tuple[float, list[np.ndarray]]:
 
     np_rng = np.random.default_rng(42)
     u = np_rng.normal(size=p)
-    H = reflector(u)
+    H = ground_truth(u)
     input_dataset = data_gen(np_rng, p, H)
+
+    _, s, _ = np.linalg.svd(H, full_matrices=False)
 
     dummy_u, dummy_v = next(input_dataset)
     rng = jax.random.PRNGKey(42)
     params = loss_fn_t.init(rng, dummy_u, dummy_v)
 
-    for u, v in (pbar := tqdm(islice(input_dataset, 256))):
-        pbar.set_description(f"{loss_fn_t.apply(params, u, v)=}")
+    for u, v in (pbar := tqdm(islice(input_dataset, 16384))):
+        I = np.eye(p)
+        Hhat = forward_t.apply(params, I)
+        _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
+        pbar.set_description(f"{np.round(s-shat, 2)}")
+
         grads = jax.grad(loss_fn_t.apply)(params, u, v)
         params = jax.tree_util.tree_multimap(update_rule, params, grads)
 
     I = np.eye(p)
     Hhat = forward_t.apply(params, I)
-    loss = jnp.linalg.norm(H - Hhat)
+    _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
+    loss = jnp.linalg.norm(s - shat)
     weights = list(np.array(params[f"lnn/~/linear_{i}"]["w"]) for i in range(3))
 
     return loss, weights
 
 
 if __name__ == "__main__":
-    train()
+    from ground_truth import just_random
+    train(just_random)
