@@ -12,7 +12,7 @@ from lnn.ground_truth import reflector, rank_one
 class TestAnalyzeWeight(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_analyze_lnn_full_rank(self) -> None:
-        loss, weights = train(reflector, [4, 4, 4], 8192)
+        loss, weights = train(reflector, [4, 4, 4], 8192, True)
         self.assertLessEqual(loss, 0.02)
 
         barcodes = analyze(weights)
@@ -45,6 +45,8 @@ class TestAnalyzeWeight(unittest.TestCase):
             [(barcode.birth, barcode.trace) for barcode in expected],
         )
 
+        print(barcodes)
+
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
                 (np.array(b1.coefs).round(3) == np.array(b2.coefs).round(3)).all()
@@ -52,7 +54,7 @@ class TestAnalyzeWeight(unittest.TestCase):
 
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_analyze_lnn_rank_one(self) -> None:
-        loss, weights = train(rank_one, [4, 4, 4], 8192)
+        loss, weights = train(rank_one, [4, 4, 4], 8192, True)
         self.assertLessEqual(loss, 0.02)
 
         barcodes = analyze(weights)
@@ -88,6 +90,8 @@ class TestAnalyzeWeight(unittest.TestCase):
             [(barcode.birth, barcode.trace) for barcode in barcodes],
             [(barcode.birth, barcode.trace) for barcode in expected],
         )
+
+        print(barcodes)
 
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(

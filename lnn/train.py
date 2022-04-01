@@ -61,11 +61,12 @@ def lookup_ground_truth(ctx, param, value):
 )
 @click.option("--neurons", type=int, multiple=True, help="Dimension of H.")
 @click.option("--epochs", type=int, help="Number of training epochs.")
-def cli(ground_truth, neurons, epochs):
-    train(ground_truth, neurons, epochs)
+@click.option("--quiet", type=bool, default=False, help="Suppress output.")
+def cli(ground_truth, neurons, epochs, quiet):
+    train(ground_truth, neurons, epochs, quiet)
 
 
-def train(ground_truth, neurons, epochs) -> tuple[float, list[np.ndarray]]:
+def train(ground_truth, neurons, epochs, quiet) -> tuple[float, list[np.ndarray]]:
     def forward(input):
         lnn = LNN(neurons)
         output = lnn(input)
@@ -93,19 +94,20 @@ def train(ground_truth, neurons, epochs) -> tuple[float, list[np.ndarray]]:
     rng = jax.random.PRNGKey(42)
     params = loss_fn_t.init(rng, dummy_u, dummy_v)
 
-    for u, v in (pbar := tqdm(islice(input_dataset, epochs))):
+    for u, v in (pbar := tqdm(islice(input_dataset, epochs), disable=quiet)):
         I = np.eye(p)
         Hhat = forward_t.apply(params, I)
         _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
 
-        error_s = np.array2string(
-            s - shat,
-            precision=2,
-            separator=", ",
-            formatter={"float_kind": lambda x: "%5.2f" % x},
-        )
-        error_H = f"error_H={jnp.linalg.norm(H-Hhat):6.3f}"
-        pbar.set_description(f"{error_s}, {error_H}")
+        if not quiet:
+            error_s = np.array2string(
+                s - shat,
+                precision=2,
+                separator=", ",
+                formatter={"float_kind": lambda x: "%5.2f" % x},
+            )
+            error_H = f"error_H={jnp.linalg.norm(H-Hhat):6.3f}"
+            pbar.set_description(f"{error_s}, {error_H}")
 
         grads = jax.grad(loss_fn_t.apply)(params, u, v)
         params = jax.tree_util.tree_multimap(update_rule, params, grads)
