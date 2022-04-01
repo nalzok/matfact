@@ -21,22 +21,22 @@ class TestAnalyzeWeight(unittest.TestCase):
             Bar(
                 birth=0,
                 trace=[0, 0, 0, 0],
-                coefs=[0.8867233609221626, 2.8300896445295645, 0.37028828263282776],
+                coefs=[0.8872060680376328, 2.8206796585519216, 0.37110570073127747],
             ),
             Bar(
                 birth=0,
                 trace=[1, 1, 1, 1],
-                coefs=[-0.1491364440092249, -0.6179503749319515, 1.1909053426842202],
+                coefs=[-0.14907615733109542, -0.615705843267983, 1.1905652749889464],
             ),
             Bar(
                 birth=0,
                 trace=[2, 2, 2, 2],
-                coefs=[2.797325762212711, -0.7491768395528192, 1.5205921013003083],
+                coefs=[2.8059388431841543, -0.7519656475865628, 1.5190546905074143],
             ),
             Bar(
                 birth=0,
                 trace=[3, 3, 3, 3],
-                coefs=[-2.8809538403416566, -0.5794136911250758, 1.8455965459097048],
+                coefs=[-2.8693334521040432, -0.5807573998700479, 1.8419283121784416],
             ),
         ]
 
@@ -44,8 +44,6 @@ class TestAnalyzeWeight(unittest.TestCase):
             [(barcode.birth, barcode.trace) for barcode in barcodes],
             [(barcode.birth, barcode.trace) for barcode in expected],
         )
-
-        print(barcodes)
 
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
@@ -63,26 +61,26 @@ class TestAnalyzeWeight(unittest.TestCase):
             Bar(
                 birth=0,
                 trace=[0, 0, 0, 0],
-                coefs=[0.17496910863256113, 1.9590297275423494, 0.2753755748271942],
+                coefs=[0.17291343249145688, 1.9554653503881327, 0.2752838730812073],
             ),
             Bar(
                 birth=0,
                 trace=[1, 1, 1, 1],
-                coefs=[0.001618242114158619, 15.73688814920096, 0.04980772431578018],
+                coefs=[
+                    0.00028599331487311197,
+                    15.885820397224023,
+                    0.049065108671815405,
+                ],
             ),
             Bar(
                 birth=0,
                 trace=[2, 2, 2, 2],
-                coefs=[-0.04427404053838152, 0.0002770990702196281, 9.856836314367182],
+                coefs=[-0.06587927215414519, 0.00028046108289991184, 9.979095551252685],
             ),
             Bar(
                 birth=0,
                 trace=[3, 3, 3, 3],
-                coefs=[
-                    -1.512531801060868e-05,
-                    -0.0002605785416602488,
-                    2.018028900351889,
-                ],
+                coefs=[-0.0006948071053359955, -0.003382645961549524, 2.02554630175558],
             ),
         ]
 
@@ -90,8 +88,6 @@ class TestAnalyzeWeight(unittest.TestCase):
             [(barcode.birth, barcode.trace) for barcode in barcodes],
             [(barcode.birth, barcode.trace) for barcode in expected],
         )
-
-        print(barcodes)
 
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
