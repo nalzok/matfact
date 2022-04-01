@@ -47,7 +47,7 @@ class TestAnalyzeWeight(unittest.TestCase):
 
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
-                (np.array(b1.coefs).round(3) == np.array(b2.coefs).round(3)).all()
+                (np.array(b1.coefs).round(1) == np.array(b2.coefs).round(1)).all()
             )
 
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
@@ -91,5 +91,5 @@ class TestAnalyzeWeight(unittest.TestCase):
 
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
-                (np.array(b1.coefs).round(2) == np.array(b2.coefs).round(2)).all()
+                (np.array(b1.coefs).round(1) == np.array(b2.coefs).round(1)).all()
             )

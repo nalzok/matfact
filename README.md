@@ -20,11 +20,11 @@ TODO:
         + [ ] Train longer to see if condition number drops
     + [ ] Weight shrinkage / dropout
     + [X] Rank one transformation instead of Householder
-        + Doesn't seem to work; still gives full-length bars
+        + Despite full-length bars, many coefficient are close to zero in this case
     + [X] Scale H to have different singular values and use narrower/wider hidden layers
         + Hhat appears to be the closest unitary/orthogonal matrix of H
         + Wider hidden layers leads to faster convergence
-        + See for `lnn/RESULTS.md` for simulation results
+        + See [`lnn/RESULTS.md`](https://github.com/nalzok/matfact/blob/main/lnn/RESULTS.md) for simulation results
     + [ ] Determinant of Hhat
     + [ ] Run L(E)UP on H and check U
         + [ ] Maybe on Hhat as well
