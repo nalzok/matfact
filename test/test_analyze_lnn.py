@@ -13,7 +13,7 @@ class TestAnalyzeWeight(unittest.TestCase):
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_analyze_lnn_full_rank(self) -> None:
         loss, weights = train(reflector, [4, 4, 4], 8192)
-        self.assertLessEqual(loss, 0.01)
+        self.assertLessEqual(loss, 0.02)
 
         barcodes = analyze(weights)
 
