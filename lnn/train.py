@@ -7,6 +7,9 @@ import jax
 import jax.numpy as jnp
 import haiku as hk
 from tqdm import tqdm
+import click
+
+from lnn.ground_truth import reflector, rank_one, just_random
 
 
 def data_gen(np_rng, p, H):
@@ -16,14 +19,13 @@ def data_gen(np_rng, p, H):
 
 
 class LNN(hk.Module):
-    def __init__(self, p, name=None):
+    def __init__(self, neurons: list[int], name=None):
         super().__init__(name)
-        self.p = p
+        self.neurons = neurons
         self.model = hk.Sequential(
             [
-                hk.Linear(self.p, with_bias=False, name="linear_0"),
-                hk.Linear(self.p//2, with_bias=False, name="linear_1"),
-                hk.Linear(self.p, with_bias=False, name="linear_2"),
+                hk.Linear(p, with_bias=False, name=f"linear_{i}")
+                for i, p in enumerate(self.neurons)
             ]
         )
 
@@ -36,11 +38,36 @@ def update_rule(param, update):
     return param - 0.001 * update
 
 
-def train(ground_truth) -> tuple[float, list[np.ndarray]]:
-    p = 8
+ground_truths = {
+    "reflector": reflector,
+    "rank_one": rank_one,
+    "just_random": just_random,
+}
 
+
+def lookup_ground_truth(ctx, param, value):
+    try:
+        return ground_truths[value]
+    except KeyError:
+        raise click.BadParameter("Invalid choice of 'ground_truth'")
+
+
+@click.command()
+@click.option(
+    "--ground_truth",
+    type=click.Choice(list(ground_truths.keys()), case_sensitive=False),
+    callback=lookup_ground_truth,
+    help="Generator for the ground truth linear transformation H.",
+)
+@click.option("--neurons", type=int, multiple=True, help="Dimension of H.")
+@click.option("--epochs", type=int, help="Number of training epochs.")
+def cli(ground_truth, neurons, epochs):
+    train(ground_truth, neurons, epochs)
+
+
+def train(ground_truth, neurons, epochs) -> tuple[float, list[np.ndarray]]:
     def forward(input):
-        lnn = LNN(p)
+        lnn = LNN(neurons)
         output = lnn(input)
         return output
 
@@ -54,35 +81,42 @@ def train(ground_truth) -> tuple[float, list[np.ndarray]]:
     loss_fn_t = hk.transform(loss_fn)
     loss_fn_t = hk.without_apply_rng(loss_fn_t)
 
+    p = neurons[0]
     np_rng = np.random.default_rng(42)
     u = np_rng.normal(size=p)
     H = ground_truth(u)
     input_dataset = data_gen(np_rng, p, H)
 
-    _, s, _ = np.linalg.svd(H, full_matrices=False)
+    u, s, v = np.linalg.svd(H, full_matrices=False)
 
     dummy_u, dummy_v = next(input_dataset)
     rng = jax.random.PRNGKey(42)
     params = loss_fn_t.init(rng, dummy_u, dummy_v)
 
-    for u, v in (pbar := tqdm(islice(input_dataset, 16384))):
+    for u, v in (pbar := tqdm(islice(input_dataset, epochs))):
         I = np.eye(p)
         Hhat = forward_t.apply(params, I)
         _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
-        pbar.set_description(f"{np.round(s-shat, 2)}")
+
+        error_s = np.array2string(
+            s - shat,
+            precision=2,
+            separator=", ",
+            formatter={"float_kind": lambda x: "%5.2f" % x},
+        )
+        error_H = f"error_H={jnp.linalg.norm(H-Hhat):6.3f}"
+        pbar.set_description(f"{error_s}, {error_H}")
 
         grads = jax.grad(loss_fn_t.apply)(params, u, v)
         params = jax.tree_util.tree_multimap(update_rule, params, grads)
 
     I = np.eye(p)
     Hhat = forward_t.apply(params, I)
-    _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
-    loss = jnp.linalg.norm(s - shat)
+    loss = jnp.linalg.norm(H - Hhat)
     weights = list(np.array(params[f"lnn/~/linear_{i}"]["w"]) for i in range(3))
 
     return loss, weights
 
 
 if __name__ == "__main__":
-    from ground_truth import just_random
-    train(just_random)
+    cli()

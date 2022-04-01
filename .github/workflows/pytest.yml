@@ -48,4 +48,4 @@ jobs:
 
     - name: Check with mypy
       run: |
-        pipenv run mypy --strict -p matfact -p test
+        pipenv run mypy --strict -p matfact -p lnn -p test
