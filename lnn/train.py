@@ -35,7 +35,7 @@ class LNN(hk.Module):
 
 
 def update_rule(param, update):
-    return param - 0.001 * update
+    return 0.9999 * param - 0.001 * update
 
 
 ground_truths = {
