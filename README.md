@@ -18,7 +18,8 @@ TODO:
     + [X] Extract barcode from the LNN
     + [ ] Track condition number of Bar within each epoch
         + [ ] Train longer to see if condition number drops
-    + [ ] Weight shrinkage / dropout
+    + [X] Weight shrinkage / dropout
+        + weight = 0.99*weight - learning_rate*gradient
     + [X] Rank one transformation instead of Householder
         + Despite full-length bars, many coefficient are close to zero in this case
     + [X] Scale H to have different singular values and use narrower/wider hidden layers

@@ -1,103 +1,80 @@
 # mypy: ignore-errors
 
-from itertools import islice
+import functools
+import itertools
+from typing import Sequence
 
 import numpy as np
 import jax
 import jax.numpy as jnp
-import haiku as hk
+from flax import linen as nn
+from flax.training import train_state
+import optax
 from tqdm import tqdm
-import click
-
-from lnn.ground_truth import reflector, rank_one, just_random
 
 
-def data_gen(np_rng, p, H):
+def data_gen(np_rng, p, H, batch_size):
     while True:
-        v = np_rng.normal(size=p).astype(np.float32)
-        yield v, H @ v
+        v = np_rng.normal(size=(batch_size, p)).astype(np.float32)
+        yield jnp.array(v), jnp.array(v @ H)
 
 
-class LNN(hk.Module):
-    def __init__(self, neurons: list[int], name=None):
-        super().__init__(name)
-        self.neurons = neurons
-        self.model = hk.Sequential(
-            [
-                hk.Linear(p, with_bias=False, name=f"linear_{i}")
-                for i, p in enumerate(self.neurons)
-            ]
-        )
+class LNN(nn.Module):
+    features: Sequence[int]
 
-    def __call__(self, input):
-        output = self.model(input)
-        return output
+    def setup(self) -> None:
+        self.layers = [nn.Dense(feat, use_bias=False) for feat in self.features]
+
+    def __call__(self, inputs):
+        x = inputs
+        for lyr in self.layers:
+          x = lyr(x)
+        return x
 
 
-def update_rule(param, update):
-    return param - 0.001 * update
+def create_train_state(rng, p, features, learning_rate, weight_decay):
+  """Creates initial `TrainState`."""
+  lnn = LNN(features)
+  params = lnn.init(rng, jnp.ones((1, p)))['params']
+  tx = optax.adamw(learning_rate, weight_decay=weight_decay)
+  return train_state.TrainState.create(
+      apply_fn=lnn.apply, params=params, tx=tx)
 
 
-ground_truths = {
-    "reflector": reflector,
-    "rank_one": rank_one,
-    "just_random": just_random,
-}
+@functools.partial(jax.jit, static_argnums=(0,))
+def train_step(features, state, X, y):
+    """Train for a single step."""
+    def loss_fn(params):
+      outputs = LNN(features).apply({'params': params}, X)
+      loss = jnp.mean(jnp.sum((outputs - y)**2, axis=1))
+      return loss
+
+    grad_fn = jax.grad(loss_fn)
+    grads = grad_fn(state.params)
+    state = state.apply_gradients(grads=grads)
+    return state
 
 
-def lookup_ground_truth(ctx, param, value):
-    try:
-        return ground_truths[value]
-    except KeyError:
-        raise click.BadParameter("Invalid choice of 'ground_truth'")
+def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndarray]]:
+    I = np.eye(p)
 
-
-@click.command()
-@click.option(
-    "--ground_truth",
-    type=click.Choice(list(ground_truths.keys()), case_sensitive=False),
-    callback=lookup_ground_truth,
-    help="Generator for the ground truth linear transformation H.",
-)
-@click.option("--neurons", type=int, multiple=True, help="Dimension of H.")
-@click.option("--epochs", type=int, help="Number of training epochs.")
-@click.option("--quiet", type=bool, default=False, help="Suppress output.")
-def cli(ground_truth, neurons, epochs, quiet):
-    train(ground_truth, neurons, epochs, quiet)
-
-
-def train(ground_truth, neurons, epochs, quiet) -> tuple[float, list[np.ndarray]]:
-    def forward(input):
-        lnn = LNN(neurons)
-        output = lnn(input)
-        return output
-
-    forward_t = hk.transform(forward)
-    forward_t = hk.without_apply_rng(forward_t)
-
-    def loss_fn(input, ground_truth):
-        output = forward(input)
-        return jnp.linalg.norm(output - ground_truth)
-
-    loss_fn_t = hk.transform(loss_fn)
-    loss_fn_t = hk.without_apply_rng(loss_fn_t)
-
-    p = neurons[0]
     np_rng = np.random.default_rng(42)
     u = np_rng.normal(size=p)
     H = ground_truth(u)
-    input_dataset = data_gen(np_rng, p, H)
 
-    u, s, v = np.linalg.svd(H, full_matrices=False)
+    batch_size = 256
+    input_dataset = data_gen(np_rng, p, H, batch_size)
 
-    dummy_u, dummy_v = next(input_dataset)
+    s = np.linalg.svd(H, compute_uv=False)
+
     rng = jax.random.PRNGKey(42)
-    params = loss_fn_t.init(rng, dummy_u, dummy_v)
+    rng, init_rng = jax.random.split(rng)
+    state = create_train_state(init_rng, p, features, 0.001, 0.0001)
+    del init_rng
 
-    for u, v in (pbar := tqdm(islice(input_dataset, epochs), disable=quiet)):
-        I = np.eye(p)
-        Hhat = forward_t.apply(params, I)
-        _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
+    for X, y in (pbar := tqdm(itertools.islice(input_dataset, epochs), disable=quiet)):
+        Hhat = LNN(features).apply({'params': state.params}, I)
+        shat = np.linalg.svd(Hhat, compute_uv=False)
 
         if not quiet:
             error_s = np.array2string(
@@ -109,16 +86,11 @@ def train(ground_truth, neurons, epochs, quiet) -> tuple[float, list[np.ndarray]
             error_H = f"error_H={jnp.linalg.norm(H-Hhat):6.3f}"
             pbar.set_description(f"{error_s}, {error_H}")
 
-        grads = jax.grad(loss_fn_t.apply)(params, u, v)
-        params = jax.tree_util.tree_multimap(update_rule, params, grads)
+        state = train_step(features, state, X, y)
 
-    I = np.eye(p)
-    Hhat = forward_t.apply(params, I)
+    Hhat = LNN(features).apply({'params': state.params}, I)
     loss = jnp.linalg.norm(H - Hhat)
-    weights = list(np.array(params[f"lnn/~/linear_{i}"]["w"]) for i in range(3))
+    weights = list(np.array(param['kernel']) for param in state.params.values())
 
     return loss, weights
 
-
-if __name__ == "__main__":
-    cli()

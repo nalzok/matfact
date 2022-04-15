@@ -5,9 +5,10 @@ name = "pypi"
 
 [packages]
 numpy = "*"
-dm-haiku = "*"
 jax = {extras = ["cpu"], version = "*"}
 tqdm = "*"
+click = "*"
+flax = "*"
 
 [dev-packages]
 scipy = "*"
@@ -15,6 +16,8 @@ flake8 = "*"
 pytest = "*"
 mypy = "*"
 black = "*"
+tensorflow = "*"
+tbp-nightly = "*"
 
 [requires]
 python_version = "3.10"

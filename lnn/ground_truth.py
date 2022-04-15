@@ -28,3 +28,10 @@ def just_random(u: npt.NDArray[np.float32]) -> jnp.ndarray:
     n = u.size
     H = rng.random((n, n))
     return jnp.asarray(H)
+
+
+ground_truths = {
+    "reflector": reflector,
+    "rank_one": rank_one,
+    "just_random": just_random,
+}
