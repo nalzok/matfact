@@ -1,5 +1,7 @@
 # mypy: ignore-errors
 
+import os
+import pprint
 from itertools import islice
 
 import numpy as np
@@ -9,6 +11,8 @@ import haiku as hk
 from tqdm import tqdm
 import click
 
+from matfact.barcode import Bar
+from matfact.analyze_weights import analyze
 from lnn.ground_truth import reflector, rank_one, just_random
 
 
@@ -94,10 +98,16 @@ def train(ground_truth, neurons, epochs, quiet) -> tuple[float, list[np.ndarray]
     rng = jax.random.PRNGKey(42)
     params = loss_fn_t.init(rng, dummy_u, dummy_v)
 
-    for u, v in (pbar := tqdm(islice(input_dataset, epochs), disable=quiet)):
+    barcode = ''
+    for i, (u, v) in enumerate(pbar := tqdm(islice(input_dataset, epochs), disable=quiet)):
         I = np.eye(p)
         Hhat = forward_t.apply(params, I)
         _, shat, _ = np.linalg.svd(Hhat, full_matrices=False)
+
+        if i % 8 == 0:
+            weights = list(np.array(params[f"lnn/~/linear_{i}"]["w"]) for i in range(3))
+            bars = analyze(weights)
+            barcode = format_barcode(bars)
 
         if not quiet:
             error_s = np.array2string(
@@ -107,7 +117,8 @@ def train(ground_truth, neurons, epochs, quiet) -> tuple[float, list[np.ndarray]
                 formatter={"float_kind": lambda x: "%5.2f" % x},
             )
             error_H = f"error_H={jnp.linalg.norm(H-Hhat):6.3f}"
-            pbar.set_description(f"{error_s}, {error_H}")
+            pbar.write("-" * 72)
+            pbar.write(f"{error_s}, {error_H}\n{barcode}")
 
         grads = jax.grad(loss_fn_t.apply)(params, u, v)
         params = jax.tree_util.tree_multimap(update_rule, params, grads)
@@ -118,6 +129,15 @@ def train(ground_truth, neurons, epochs, quiet) -> tuple[float, list[np.ndarray]
     weights = list(np.array(params[f"lnn/~/linear_{i}"]["w"]) for i in range(3))
 
     return loss, weights
+
+
+def format_barcode(bars: list[Bar]) -> str:
+    bars_transposed = [[] for _ in bars[0].coefs]
+    for i in range(len(bars_transposed)):
+        for bar in bars:
+            bars_transposed[i].append("%5.1f" % bar.coefs[i])
+    barcode = pprint.pformat(bars_transposed)
+    return barcode
 
 
 if __name__ == "__main__":

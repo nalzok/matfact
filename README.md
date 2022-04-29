@@ -29,4 +29,4 @@ TODO:
     + [ ] Run L(E)UP on H and check U
         + [ ] Maybe on Hhat as well
     + [X] Rename Barcode to Bar
-
+    + [ ] Print barcode during training
