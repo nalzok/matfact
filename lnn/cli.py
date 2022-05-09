@@ -1,7 +1,6 @@
 # mypy: ignore-errors
 
 import click
-import jax
 
 from lnn.train import train
 from lnn.ground_truth import ground_truths
@@ -26,10 +25,8 @@ def lookup_ground_truth(ctx, param, value):
 @click.option("--epochs", type=int, help="Number of training epochs.")
 @click.option("--quiet", type=bool, default=False, help="Suppress output.")
 def cli(ground_truth, p, features, epochs, quiet):
-    with jax.profiler.trace('/tmp/tensorboard'):
-        loss, weights = train(ground_truth, p, features, epochs, quiet)
+    train(ground_truth, p, features, epochs, quiet)
 
 
 if __name__ == "__main__":
     cli()
-

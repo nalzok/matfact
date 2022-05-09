@@ -3,6 +3,7 @@
 import functools
 import itertools
 from typing import Sequence
+import pprint
 
 import numpy as np
 import jax
@@ -11,6 +12,9 @@ from flax import linen as nn
 from flax.training import train_state
 import optax
 from tqdm import tqdm
+
+from matfact.barcode import Bar
+from matfact.analyze_weights import analyze
 
 
 def data_gen(np_rng, p, H, batch_size):
@@ -72,9 +76,17 @@ def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndar
     state = create_train_state(init_rng, p, features, 0.001, 0.0001)
     del init_rng
 
-    for X, y in (pbar := tqdm(itertools.islice(input_dataset, epochs), disable=quiet)):
-        Hhat = LNN(features).apply({'params': state.params}, I)
+    forward = jax.jit(LNN(features).apply)
+
+    barcode = ''
+    for i, (X, y) in enumerate(pbar := tqdm(itertools.islice(input_dataset, epochs), disable=quiet)):
+        Hhat = forward({'params': state.params}, I)
         shat = np.linalg.svd(Hhat, compute_uv=False)
+
+        if i % 8 == 0:
+            weights = list(np.array(param['kernel']) for param in state.params.values())
+            bars = analyze(weights)
+            barcode = format_barcode(bars)
 
         if not quiet:
             error_s = np.array2string(
@@ -84,7 +96,8 @@ def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndar
                 formatter={"float_kind": lambda x: "%5.2f" % x},
             )
             error_H = f"error_H={jnp.linalg.norm(H-Hhat):6.3f}"
-            pbar.set_description(f"{error_s}, {error_H}")
+            pbar.write("-" * 72)
+            pbar.write(f"{error_s}, {error_H}\n{barcode}")
 
         state = train_step(features, state, X, y)
 
@@ -94,3 +107,11 @@ def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndar
 
     return loss, weights
 
+
+def format_barcode(bars: list[Bar]) -> str:
+    bars_transposed = [[] for _ in bars[0].coefs]
+    for i in range(len(bars_transposed)):
+        for bar in bars:
+            bars_transposed[i].append("%5.1f" % bar.coefs[i])
+    barcode = pprint.pformat(bars_transposed)
+    return barcode
