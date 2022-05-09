@@ -21,7 +21,12 @@ def lookup_ground_truth(ctx, param, value):
     help="Generator for the ground truth linear transformation H.",
 )
 @click.option("--p", type=int, help="Dimension of H.")
-@click.option("--features", type=int, multiple=True, help="Number of output features in each hidden layer.")
+@click.option(
+    "--features",
+    type=int,
+    multiple=True,
+    help="Number of output features in each hidden layer.",
+)
 @click.option("--epochs", type=int, help="Number of training epochs.")
 @click.option("--quiet", type=bool, default=False, help="Suppress output.")
 def cli(ground_truth, p, features, epochs, quiet):

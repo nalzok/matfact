@@ -32,26 +32,26 @@ class LNN(nn.Module):
     def __call__(self, inputs):
         x = inputs
         for lyr in self.layers:
-          x = lyr(x)
+            x = lyr(x)
         return x
 
 
 def create_train_state(rng, p, features, learning_rate, weight_decay):
-  """Creates initial `TrainState`."""
-  lnn = LNN(features)
-  params = lnn.init(rng, jnp.ones((1, p)))['params']
-  tx = optax.adamw(learning_rate, weight_decay=weight_decay)
-  return train_state.TrainState.create(
-      apply_fn=lnn.apply, params=params, tx=tx)
+    """Creates initial `TrainState`."""
+    lnn = LNN(features)
+    params = lnn.init(rng, jnp.ones((1, p)))["params"]
+    tx = optax.adamw(learning_rate, weight_decay=weight_decay)
+    return train_state.TrainState.create(apply_fn=lnn.apply, params=params, tx=tx)
 
 
 @functools.partial(jax.jit, static_argnums=(0,))
 def train_step(features, state, X, y):
     """Train for a single step."""
+
     def loss_fn(params):
-      outputs = LNN(features).apply({'params': params}, X)
-      loss = jnp.mean(jnp.sum((outputs - y)**2, axis=1))
-      return loss
+        outputs = LNN(features).apply({"params": params}, X)
+        loss = jnp.mean(jnp.sum((outputs - y) ** 2, axis=1))
+        return loss
 
     grad_fn = jax.grad(loss_fn)
     grads = grad_fn(state.params)
@@ -78,13 +78,15 @@ def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndar
 
     forward = jax.jit(LNN(features).apply)
 
-    barcode = ''
-    for i, (X, y) in enumerate(pbar := tqdm(itertools.islice(input_dataset, epochs), disable=quiet)):
-        Hhat = forward({'params': state.params}, I)
+    barcode = ""
+    for i, (X, y) in enumerate(
+        pbar := tqdm(itertools.islice(input_dataset, epochs), disable=quiet)
+    ):
+        Hhat = forward({"params": state.params}, I)
         shat = np.linalg.svd(Hhat, compute_uv=False)
 
         if i % 8 == 0:
-            weights = list(np.array(param['kernel']) for param in state.params.values())
+            weights = list(np.array(param["kernel"]) for param in state.params.values())
             bars = analyze(weights)
             barcode = format_barcode(bars)
 
@@ -101,9 +103,9 @@ def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndar
 
         state = train_step(features, state, X, y)
 
-    Hhat = LNN(features).apply({'params': state.params}, I)
+    Hhat = LNN(features).apply({"params": state.params}, I)
     loss = jnp.linalg.norm(H - Hhat)
-    weights = list(np.array(param['kernel']) for param in state.params.values())
+    weights = list(np.array(param["kernel"]) for param in state.params.values())
 
     return loss, weights
 
