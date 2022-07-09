@@ -1,12 +1,18 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
-from functools import partial
 import numpy as np
 import optax
 from flax import linen as nn
 from flax.training.train_state import TrainState
-from datasets.load import load_dataset
+from torchvision.datasets import MNIST
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+
+from .linearize import linearize
+from .attack import pgd_attack
 
 
 class CNN(nn.Module):
@@ -43,9 +49,9 @@ class CNN(nn.Module):
         return x
 
 
-def create_train_state(key, learning_rate):
+def create_train_state(key, learning_rate, specimen):
     cnn = CNN()
-    params = cnn.init(key, jnp.empty((28, 28, 1)))
+    params = cnn.init(key, specimen)
     tx = optax.adam(learning_rate)
     return TrainState.create(
         apply_fn=cnn.apply, params=params, tx=tx
@@ -66,50 +72,91 @@ def train_step(state, image, label):
     return state, loss, hit/label.shape[0]
 
 
+@jax.jit
+def test_step(state, image):
+    logits = state.apply_fn(state.params, image)
+    label = jnp.argmax(logits, axis=-1)
+
+    return label
+
+
 if __name__ == '__main__':
     learning_rate = 1e-3
-    num_epochs = 2
-    batch_size = 32
+    num_epochs = 8
+    batch_size = 64
 
-    mnist = load_dataset('mnist', split='train')
+    root = '/mnt/disks/persist/torchvision/datasets'
+    train_dataset = MNIST(root, train=True, download=True, transform=np.array)
+    test_dataset = MNIST(root, train=False, download=True, transform=np.array)
+    specimen = jnp.empty((28, 28, 1))
 
     key = jax.random.PRNGKey(42)
-    state = create_train_state(key, learning_rate)
+    state = create_train_state(key, learning_rate, specimen)
 
     for epoch in range(num_epochs):
-        pbar = tqdm(range(0, len(mnist), batch_size))
-        for i, batch_id in enumerate(pbar):
-            batch = mnist[batch_id:batch_id+batch_size]
-            image = jnp.array([np.array(image) for image in batch['image']]).reshape((-1, 28, 28, 1))/255.
-            label = jax.nn.one_hot(jnp.array(batch['label']), 10)
+        train_loader = DataLoader(train_dataset, batch_size)
+        pbar = tqdm(train_loader)
+        for X, y in pbar:
+            image = jnp.array(X).reshape((-1, *specimen.shape))/255.
+            label = jax.nn.one_hot(jnp.array(y), 10)
             state, loss, accuracy = train_step(state, image, label)
             pbar.set_description(f'{loss.item()=:.2f}, {accuracy.item()=:.2f}')
 
+
+    # Linearization
     cnn = CNN()
-    output = X0 = jnp.array([np.array(mnist[42]['image'])]).reshape((28, 28, 1))/255.
+
+    X, _ = train_dataset[42]
+    output = image = jnp.array(X).reshape(specimen.shape)/255.
 
     # Calculate Jacobian matrices separately
-    J_x = jnp.eye(np.prod(X0.shape))
-    for f in (cnn.f1, cnn.f2, cnn.f3, cnn.f4):
-        output, J = jax.vmap(
-            lambda tangent: jax.jvp(lambda X: cnn.apply(state.params, X, method=f), (output,), (tangent,)),
-        )(jnp.eye(np.prod(output.shape)).reshape(-1, *output.shape))
-        output = output[0]
+    Js, output = linearize(state, cnn, image)
+    J_x = jnp.eye(np.prod(image.shape))
+    for J in Js:
         J = J.reshape((J.shape[0], np.prod(J.shape[1:]))).T
-        eigen_J = np.linalg.svd(J, compute_uv=False)
-        print('Step-by-step (inner)', eigen_J)
         J_x = J @ J_x
 
     print('Setp-by-step', output)
     eigen_x = jnp.linalg.svd(J_x, compute_uv=False)
     print('Step-by-step', J_x.shape)
     print('Step-by-step', eigen_x)
-
+ 
     # Calculate the product of all Jacobian matrices directly
-    y, vjp_fun = jax.vjp(cnn.apply, state.params, X0)
+    y, vjp_fun = jax.vjp(cnn.apply, state.params, image)
     J_params, J_x = jax.vmap(vjp_fun)(jnp.eye(10))  # the cotangent vector space is R^10, since there are 10 logits
+
     print('Streamlined', y)
     eigen_x = jnp.linalg.svd(J_x.reshape((J_x.shape[0], -1)), compute_uv=False)
     print('Streamlined', J_x.shape)
     print('Streamlined', eigen_x)
 
+
+    # Construct adversial examples with PGD
+    exported = set()
+    test_loader = DataLoader(test_dataset, 1024)
+    for i, (X, y) in enumerate(test_loader):
+        image = jnp.array(X).reshape((-1, *specimen.shape))/255.
+        label = jnp.array(y)
+
+        target = jax.nn.one_hot((label + 1) % 10, 10)
+        adversary = pgd_attack(image, target, state)
+
+        for i in range(label.shape[0]):
+            single_label = label[i].item()
+            if single_label not in exported:
+                exported.add(single_label)
+
+                fig, axes = plt.subplots(1, 2, constrained_layout=True)
+                axes[0].imshow(image[i], cmap='gist_gray')
+                axes[1].imshow(adversary[i], cmap='gist_gray')
+                for ax in axes:
+                    ax.get_xaxis().set_visible(False)
+                    ax.get_yaxis().set_visible(False)
+                plt.suptitle(f'Label = {single_label}, Target = {(single_label + 1) % 10}')
+                plt.savefig(f'nn/generated/adversarial_{single_label}.png', dpi=200)
+                plt.close()
+
+        predicted_orig = test_step(state, image)
+        predicted_adv = test_step(state, adversary)
+
+        print(jnp.sum(predicted_orig == label), jnp.sum(predicted_adv == label))
