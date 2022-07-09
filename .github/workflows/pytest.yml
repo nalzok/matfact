@@ -4,6 +4,7 @@ on: [push]
 
 env:
     LANG: C.UTF-8
+    PIP_FIND_LINKS: https://storage.googleapis.com/jax-releases/libtpu_releases.html
 
 jobs:
   run-all-tests:
