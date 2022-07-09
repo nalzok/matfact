@@ -1,3 +1,4 @@
+from typing import Sequence, List
 from dataclasses import dataclass
 
 import numpy as np
@@ -8,23 +9,23 @@ from .typing import EchelonMat
 @dataclass
 class Bar:
     birth: int
-    trace: list[int]
-    coefs: list[float]
+    trace: List[int]
+    coefs: List[float]
 
     def __len__(self) -> int:
         return len(self.coefs)
 
 
-def extract_barcode(reduced: list[EchelonMat]) -> list[Bar]:
+def extract_barcode(reduced: Sequence[EchelonMat]) -> List[Bar]:
     barcode = []
 
-    bases: list[Bar] = []
+    bases: List[Bar] = []
     for basis in range(reduced[-1].shape[1]):
         # born at index 0, with empty trace
         bases.append(Bar(0, [basis], []))
 
     for i, E in enumerate(reduced[::-1]):
-        next_bases: list[Bar] = []
+        next_bases: List[Bar] = []
 
         # Assuming the direction is $V_{i-1} -> V_i$
         for basis, row in enumerate(E):

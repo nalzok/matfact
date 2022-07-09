@@ -1,4 +1,4 @@
-from functools import reduce
+from typing import Sequence, Tuple, List
 import numpy as np
 
 from .leup import leup
@@ -23,8 +23,8 @@ def EL_L_commute(EL: EchelonMat, L: LowerTriMat) -> EchelonMat:
 
 
 def reduce_boundary_maps(
-    boundary_maps: list[Mat],
-) -> tuple[LowerTriMat, list[EchelonMat], UpperTriMat, PermMat]:
+    boundary_maps: Sequence[Mat],
+) -> Tuple[LowerTriMat, List[EchelonMat], UpperTriMat, PermMat]:
     # TODO: rename argument; they are not boundary maps
     # TODO: track change of basis
     lower = []

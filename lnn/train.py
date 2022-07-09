@@ -2,7 +2,7 @@
 
 import functools
 import itertools
-from typing import Sequence
+from typing import Sequence, Tuple, List
 import pprint
 
 import numpy as np
@@ -59,7 +59,7 @@ def train_step(features, state, X, y):
     return state
 
 
-def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndarray]]:
+def train(ground_truth, p, features, epochs, quiet) -> Tuple[float, List[np.ndarray]]:
     I = np.eye(p)
 
     np_rng = np.random.default_rng(42)
@@ -110,7 +110,7 @@ def train(ground_truth, p, features, epochs, quiet) -> tuple[float, list[np.ndar
     return loss, weights
 
 
-def format_barcode(bars: list[Bar]) -> str:
+def format_barcode(bars: List[Bar]) -> str:
     bars_transposed = [[] for _ in bars[0].coefs]
     for i in range(len(bars_transposed)):
         for bar in bars:

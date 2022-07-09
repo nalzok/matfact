@@ -1,9 +1,10 @@
+from typing import Tuple
 import numpy as np
 
 from .typing import Mat, LowerTriMat, EchelonMat, UpperTriMat, PermMat
 
 
-def leup(M: Mat) -> tuple[LowerTriMat, EchelonMat, UpperTriMat, PermMat]:
+def leup(M: Mat) -> Tuple[LowerTriMat, EchelonMat, UpperTriMat, PermMat]:
     """
     Perform LEUP factorization described by algo 4 of <arXiv:1911.10693>.
 

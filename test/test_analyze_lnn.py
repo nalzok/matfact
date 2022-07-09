@@ -45,8 +45,6 @@ class TestAnalyzeWeight(unittest.TestCase):
             [(barcode.birth, barcode.trace) for barcode in expected],
         )
 
-        print(barcodes)
-
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
                 (np.array(b1.coefs).round(1) == np.array(b2.coefs).round(1)).all()
@@ -94,8 +92,6 @@ class TestAnalyzeWeight(unittest.TestCase):
             [(barcode.birth, barcode.trace) for barcode in barcodes],
             [(barcode.birth, barcode.trace) for barcode in expected],
         )
-
-        print(barcodes)
 
         for b1, b2 in zip(barcodes, expected):
             self.assertTrue(
